@@ -1,37 +1,45 @@
-// Описаний у документації
-import iziToast from 'izitoast';
-// Додатковий імпорт стилів
-import 'izitoast/dist/css/iziToast.min.css';
+import iziToast from "izitoast";
+import "izitoast/dist/css/iziToast.min.css";
 
-document.querySelector('.form').addEventListener('submit', function (event) {
-  event.preventDefault();
+const form = document.querySelector(".form");
 
-  const delayInput = document.querySelector('input[name="delay"]');
-  const stateRadio = document.querySelector('input[name="state"]:checked');
+function createPromise(event) {
+  event.preventDefault(); 
 
-  const delay = parseInt(delayInput.value, 10);
+  const stateInput = document.querySelector('input[name="state"]:checked');
+  const delayInput = document.querySelector('input[type="number"]');
+  
+  if (!stateInput || !delayInput) {
+    console.error('Error: Unable to find state or delay input element.');
+    return;
+  };
 
-  const notificationPromise = new Promise((resolve, reject) => {
-    if (stateRadio.value === 'fulfilled') {
-      setTimeout(() => resolve(delay), delay);
-    } else {
-      setTimeout(() => reject(delay), delay);
-    }
+  const stateChoice = stateInput.value;
+  const delayMilSecond = Number(delayInput.value);
+
+  const promise = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (stateChoice === 'fulfilled') {
+        resolve(delayMilSecond);
+      } else if (stateChoice === 'rejected') {
+        reject(delayMilSecond);
+      }
+    }, delayMilSecond);
   });
 
-  notificationPromise
-    .then(delay => {
+  promise
+    .then((delay) => {
       iziToast.success({
-        title: 'OK',
         message: `✅ Fulfilled promise in ${delay}ms`,
         position: 'topRight',
       });
     })
-    .catch(delay => {
+    .catch((delay) => {
       iziToast.error({
-        title: 'Error',
         message: `❌ Rejected promise in ${delay}ms`,
         position: 'topRight',
       });
     });
-});
+};
+
+form.addEventListener('submit', createPromise);

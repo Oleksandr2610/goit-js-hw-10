@@ -1,17 +1,18 @@
 import flatpickr from 'flatpickr';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 import 'flatpickr/dist/flatpickr.min.css';
-import iziToast from "izitoast";
 
-const datetimePicker = document.getElementById('datetime-picker');
-const startButton = document.querySelector('[data-start]');
-const daysValue = document.querySelector('[data-days]');
-const hoursValue = document.querySelector('[data-hours]');
-const minutesValue = document.querySelector('[data-minutes]');
-const secondsValue = document.querySelector('[data-seconds]');
+const startButton = document.querySelector('button');
+const inputData = document.querySelector('input#datetime-picker');
+const daysData = document.querySelector('[data-days]');
+const hoursData = document.querySelector('[data-hours]');
+const minutesData = document.querySelector('[data-minutes]');
+const secondsData = document.querySelector('[data-seconds]');
+const timer = document.querySelector(".timer");
 
 let userSelectedDate;
-let timerInterval;
-startButton.disabled = true;
+let timerIsRunning = false;
 
 const options = {
   enableTime: true,
@@ -20,77 +21,86 @@ const options = {
   minuteIncrement: 1,
   onClose(selectedDates) {
     userSelectedDate = selectedDates[0];
-    if (userSelectedDate < new Date()) {
+    if (userSelectedDate < Date.now()) {
       iziToast.error({
-        title: 'Error',
-        titleSize: 16,
         message: 'Please choose a date in the future',
-        messageSize: 16,
-        timeout: 3000, 
-        position: 'topRight', 
-        backgroundColor: '#EF4040', 
-        titleColor: '#fff', 
-        messageColor: '#fff',
-        close: false,
-        maxWidth: 302,
-      })
+        position: 'topRight',
+      });
+      startButton.disabled = true;
     } else {
       startButton.disabled = false;
     }
   },
 };
 
-flatpickr(datetimePicker, options);
+startButton.disabled = true;
 
-function addLeadingZero(value) {
-  return value.toString().padStart(2, '0');
-}
+let countdownInterval;
 
-function updateTimer() {
-  const currentTime = new Date();
-  const timeDifference = userSelectedDate - currentTime;
-
-  if (timeDifference <= 0) {
-    clearInterval(timerInterval);
-    daysValue.textContent = '00';
-    hoursValue.textContent = '00';
-    minutesValue.textContent = '00';
-    secondsValue.textContent = '00';
-    startButton.disabled = false;
-  } else {
-    const { days, hours, minutes, seconds } = convertMs(timeDifference);
-    daysValue.textContent = addLeadingZero(days);
-    hoursValue.textContent = addLeadingZero(hours);
-    minutesValue.textContent = addLeadingZero(minutes);
-    secondsValue.textContent = addLeadingZero(seconds);
+function startTimer() {
+  if (timerIsRunning) {
+    return;
   }
-}
 
-startButton.addEventListener('click', () => {
-  startButton.disabled = true;
-  timerInterval = setInterval(updateTimer, 1000);
-  updateTimer();
+  timerIsRunning = true;
+  countdownInterval = setInterval(updateTimer, 1000, userSelectedDate);
+  startButton.disabled = true; // Заблокувати кнопку під час роботи таймеру
+};
+
+function updateTimer(endDate) {
+  const currentDate = new Date();
+  const remainingTime = endDate - currentDate;
+  const { days, hours, minutes, seconds } = convertMs(remainingTime);
+
+  if (!isNaN(days) && !isNaN(hours) && !isNaN(minutes) && !isNaN(seconds)) {
+    daysData.textContent = addLeadingZero(days);
+    hoursData.textContent = addLeadingZero(hours);
+    minutesData.textContent = addLeadingZero(minutes);
+    secondsData.textContent = addLeadingZero(seconds);
+  }
+
+  if (remainingTime <= 0) {
+    stopTimer();
+  }
+};
+
+startButton.addEventListener("click", () => {
+  if (userSelectedDate && !timerIsRunning) {
+    startTimer();
+  }
 });
 
+function stopTimer() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+
+    daysData.textContent = '00';
+    hoursData.textContent = '00';
+    minutesData.textContent = '00';
+    secondsData.textContent = '00';
+
+    countdownInterval = null;
+    timerIsRunning = false;
+    startButton.disabled = false; // Розблокувати кнопку після зупинки таймеру
+  }
+};
+
+function addLeadingZero(value) {
+  return String(value).padStart(2, '0');
+};
+
 function convertMs(ms) {
-  // Number of milliseconds per unit of time
   const second = 1000;
   const minute = second * 60;
   const hour = minute * 60;
   const day = hour * 24;
 
-  // Remaining days
   const days = Math.floor(ms / day);
-  // Remaining hours
   const hours = Math.floor((ms % day) / hour);
-  // Remaining minutes
   const minutes = Math.floor(((ms % day) % hour) / minute);
-  // Remaining seconds
   const seconds = Math.floor((((ms % day) % hour) % minute) / second);
 
   return { days, hours, minutes, seconds };
-}
+};
 
-console.log(convertMs(2000)); // {days: 0, hours: 0, minutes: 0, seconds: 2}
-console.log(convertMs(140000)); // {days: 0, hours: 0, minutes: 2, seconds: 20}
-console.log(convertMs(24140000)); // {days: 0, hours: 6 minutes: 42, seconds: 20}
+flatpickr(inputData, options);
